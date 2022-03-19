@@ -96,7 +96,7 @@ tdmArraySamplingInit:
 	LDI R20.b1, 0x0f	;SCK and WS first round
 	LDI R20.b2, 0		;WS only for mic 0
 	LDI R21, 1		;one cannot type 2^18, so LSL 1 18 times
-	LSL R21, R21, 9		;var for start sequence with 262144 SCK at 25 MHz
+	LSL R21, R21, 18	;var for start sequence with 262144 SCK at 25 MHz
 	LDI R30.b1, 0x00	; Set both SCK as well as both WS to 0
 	LDI R18.b1, 1
 
