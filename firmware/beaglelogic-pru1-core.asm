@@ -36,13 +36,13 @@ $E?:	NOP
 	.endm
 
 BITFILL	.macro Rx, lefts
-	LDI R30.b1, 0x00	; !WS and !SCK
+	LDI R30, 0x00	; !WS and !SCK
 	DELAYx4 R14
 	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
 	NOP
 	NOP
 	
-	LDI R30.b1, 0x03	 ; SCK
+	MOV R30.w0, R12.w0	 ; SCK
 	DELAYx4 R14
 	AND  R20.b0, R20.b0, 0xf
 	LSL  R28, R20.b0, lefts
@@ -92,7 +92,10 @@ tdmArraySamplingInit:
 	;; Each sample is 24 bits.
 	;; Each daisy chain consists of 16 mics.
 	;; WS is sent first iteration and then every 16th mic, i.e. the first mic.
-	
+
+	;; R11 is SCK and WS
+	;; R12 is SCK
+	;; R13 is copy of output register for positive flanks
 	;; R21 to R28 used for eight samples. But only the first 24 bits (of 32)
 	;; R21 first used for 262144 initiating SCKs
 	;; R18.b0 counts 0, 1 (reset) to keep track of 4 or 8 recorded samples
@@ -109,18 +112,31 @@ tdmArraySamplingInit:
 	LDI R20.b1, 0x0f	;SCK and WS first round
 	LDI R20.b2, 0		;WS only for mic 0
 	LDI R21, 1		;one cannot type 2^18, so LSL 1 18 times
-	LSL R21, R21, 18	;var for start sequence with 262144 SCK at 25 MHz
-	LDI R30.b1, 0x00	; Set both SCK as well as both WS to 0
+	LSL R21, R21, 20	;var for initial standby of at least 1 ms
+	LDI R30, 0x00	        ; Set both SCK as well as both WS to 0
 	LDI R18.b1, 1
 
+	LDI R11.w0, 0x0330 	; WS1, WS2, SCK1 and SCK2
+	LDI R12.w0, 0x0300	; SCK1 and SCK2
+	MOV R13.w0, R11.w0 	; WS1, WS2, SCK1 and SCK2 for first mic
+
+tdmArrayInitialStandby:
+	SUB R21, R21, 1		;Decrease from initial 2^20
+	QBNE tdmArrayInitialStandby, R21, 0
+
+	;; Done! Now officially in standby
+	
+	LDI R21, 1		;one cannot type 2^18, so LSL 1 18 times
+	LSL R21, R21, 18	;var for start sequence with 262144 SCK at choosen MHz
+
 tdmArraySamplingInitLoop:
-	LDI R30.b1, 0x03	;Set both SCK to 1
+	MOV R30.w0, R12.w0	;Set both SCK to 1
 	DELAYx4 R14
 	NOP
 	NOP
 	NOP
 
-	LDI R30.b1, 0x00	;Set both SCK to 0
+	LDI R30, 0x00	;Set both SCK to 0
 	DELAYx4 R14
 	SUB R21, R21, 1		;Decrease from initial 262144
 	NOP
@@ -129,7 +145,7 @@ tdmArraySamplingInitLoop:
 	;; Done! Now valid samples after first WS
 	
 	;; First SCK of sample (bit 23, i.e. MSB)
-	MOV R30.b1,  R20.b1	; SCK and WS (WS for first mics on loops)
+	MOV R30.w0,  R11.w0	; SCK and WS (WS for first mics on loops)
 	DELAYx4 R14
 	NOP
 	NOP
@@ -161,7 +177,7 @@ tdmArraySamplingloop:
 	BITFILL R26, 0
 
 	;; sampling bits 7 and providing chainedBranching
-	LDI R30.b1, 0x00	; !WS and !SCK
+	LDI R30, 0x00	; !WS and !SCK
 	DELAYx4 R14
 	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
 	NOP
@@ -171,7 +187,7 @@ chainedBranching:		;only here to make long qba possible from end of file
 	QBA tdmArraySamplingloop
 	
 secondHalfBit7:
-	LDI R30.b1, 0x03	 ; SCK
+	MOV R30.w0, R12.w0	 ; SCK
 	DELAYx4 R14
 	AND  R20.b0, R20.b0, 0xf
 	LSL  R28, R20.b0, 28
@@ -189,7 +205,7 @@ secondHalfBit7:
 	BITFILL R27, 0		;with SCK z0
 
 	
-	LDI R30.b1, 0x00	; !SCK (z0)
+	LDI R30, 0x00	; !SCK (z0)
 	DELAYx4 R14
 	MOV   R28.b2, R20.b2	; mic index
 	MOV   R28.b0, R14.b0
@@ -197,13 +213,13 @@ secondHalfBit7:
 
 sendEightSamples:	
 	;; Giving data to other PRU
-	LDI R30.b1, 0x03	; SCK (z1)
+	MOV R30.w0, R12.w0	; SCK (z1)
 	DELAYx4 R14
 	NOP ;QBNE  dontSend, R18.b1, 1 Todo - this is temporary
 	ADD   R29, R29, 32	;byte counter
 	XOUT  10, &R21, 36     ; Move data across the broadside
 
-	LDI R30.b1, 0x00	; !SCK (z1)
+	LDI R30, 0x00	; !SCK (z1)
 	DELAYx4 R14
 	LDI   R31, PRU1_PRU0_INTERRUPT + 16    ; Jab PRU0
 	LDI   R18.b0, 0			       ; next are first four bits
@@ -213,7 +229,7 @@ dontSend:
 	NOP
 	NOP
 
-	LDI R30.b1, 0x00	; !SCK (z1)
+	LDI R30, 0x00	; !SCK (z1)
 	DELAYx4 R14
 	NOP
 	LDI   R18.b0, 0		; next are first four bits
@@ -222,13 +238,13 @@ dontSend:
 moveFirstFour:
 	;; While giving SCK to empty bit 1
 	;; We will send 8 samples (registers) at a time
-	LDI R30.b1, 0x03	; SCK (z1)
+	MOV R30.w0, R12.w0	; SCK (z1)
 	DELAYx4 R14
 	MOV   R21, R19
 	MOV   R22, R25
 	MOV   R23, R26
 
-	LDI R30.b1, 0x00	; !SCK (z1)
+	LDI R30, 0x00	; !SCK (z1)
 	DELAYx4 R14
 	MOV   R24, R27
 	LDI   R18.b0, 1		;next are last four bits
@@ -236,43 +252,43 @@ moveFirstFour:
 	
 
 tdmArraySamplingBlanks:
-	LDI R30.b1, 0x03	;SCK (z2)
+	MOV R30.w0, R12.w0	;SCK (z2)
 	DELAYx4 R14
 	LDI   R20.b3, 4		;Set iteration variable for blanks 
 	ADD   R20.b2, R20.b2, 1	;WS only every 16th TODO: hide this in sendEight
 	AND   R20.b2, R20.b2, 0xf
 
-	LDI R30.b1, 0x00	;!SCK (z2)
+	LDI R30, 0x00	;!SCK (z2)
 	DELAYx4 R14
 	QBEQ  upcommingWS, R20.b2, 0
 
-	LDI   R20.b1, 0x03	;WS is set not set for next sample
+	MOV   R13.w0, R12.w0	;WS is set not set for next sample
 	NOP
 
 
-	LDI R30.b1, 0x03	; SCK (z3)
+	MOV R30.w0, R12.w0	; SCK (z3)
 	DELAYx4 R14
-	NOP
-	NOP
-	NOP
+	AND R25, R25, 0		; Clear reg for next mics
+	AND R26, R26, 0		; Clear reg for next mics
+	AND R27, R27, 0		; Clear reg for next mics
 
-	LDI R30.b1, 0x00	; !SCK (z3)
+	LDI R30, 0x00	; !SCK (z3)
 	DELAYx4 R14
 	NOP
 	NOP
 	QBA   tdmArraySamplingBlanks2	;keep timing
 
 upcommingWS:
-	LDI   R20.b1, 0x0f	;WS is set for next sample
+	MOV   R13.w0, R11.w0	;WS is set for next sample
 	NOP
 
-	LDI R30.b1, 0x03	 ; SCK (z3) 
+	MOV R30.w0, R12.w0	 ; SCK (z3) 
 	DELAYx4 R14
 	ADD R19, R19, 1
 	MOV R21, R19
 	NOP
 
-	LDI R30.b1, 0x00	 ; !SCK (z3)
+	LDI R30, 0x00	 ; !SCK (z3)
 	DELAYx4 R14
 	QBEQ resetSampler, R18.b1, 1
 	SUB R18.b1, R18.b1, 1
@@ -284,20 +300,20 @@ resetSampler:
 
 tdmArraySamplingBlanks2:
 	;; SCK for empty bits 3-7
-	LDI R30.b1, 0x03	;SCK (z4)
+	MOV R30.w0, R12.w0	;SCK (z4)
 	DELAYx4 R14
 	NOP
 	NOP
 	NOP
 
-	LDI R30.b1, 0x00	;!SCK (Z4)
+	LDI R30, 0x00	;!SCK (Z4)
 	DELAYx4 R14
 	SUB   R20.b3, R20.b3, 1
 	QBNE  tdmArraySamplingBlanks3, R20.b3, 0 ;keep timing, once more blanks
 	NOP
 
 	;; First SCK of sample (bit 23, i.e. MSB)
-	MOV R30.b1,  R20.b1	; SCK and WS (WS for first mics on loops)
+	MOV R30.w0,  R13.w0	; SCK and WS (WS for first mics on loops)
 	DELAYx4 R14
 	NOP
 	;NOP                    This is a to long jump, so must be chained!
