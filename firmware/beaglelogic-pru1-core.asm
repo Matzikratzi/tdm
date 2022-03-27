@@ -36,13 +36,13 @@ $E?:	NOP
 	.endm
 
 BITFILL	.macro Rx, lefts
-	LDI R30, 0x00	; !WS and !SCK
+	AND R30.w0, R30.w0, R12.w2	; !WS and !SCK
 	DELAYx4 R14
 	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
-	NOP
-	NOP
+	ADD R30.b0, R30.b0, 0x10 ;MOV  R20.b0, R18.b2 ;NOP
+	NOP ;ADD R18.b2, R18.b2, 1 ;NOP
 	
-	MOV R30.w0, R12.w0	 ; SCK
+	OR R30.w0, R30.w0, R12.w0	 ; SCK
 	DELAYx4 R14
 	AND  R20.b0, R20.b0, 0xf
 	LSL  R28, R20.b0, lefts
@@ -116,9 +116,13 @@ tdmArraySamplingInit:
 	LDI R30, 0x00	        ; Set both SCK as well as both WS to 0
 	LDI R18.b1, 1
 
-	LDI R11.w0, 0x0330 	; WS1, WS2, SCK1 and SCK2
+	LDI R11.w0, 0x0f00 	; WS1, WS2, SCK1 and SCK2
 	LDI R12.w0, 0x0300	; SCK1 and SCK2
+	NOT R12.w2, R11.w0	; NOT (SCK1, SCK2, WS1, WS2). For turning off all
 	MOV R13.w0, R11.w0 	; WS1, WS2, SCK1 and SCK2 for first mic
+
+	LDI R30.w0, 0x0100	; flip this once to have something to trig on
+	LDI R30, 0x00	        ; Set both SCK as well as both WS to 0
 
 tdmArrayInitialStandby:
 	SUB R21, R21, 1		;Decrease from initial 2^20
@@ -177,17 +181,17 @@ tdmArraySamplingloop:
 	BITFILL R26, 0
 
 	;; sampling bits 7 and providing chainedBranching
-	LDI R30, 0x00	; !WS and !SCK
+	AND R30.w0, R30.w0, R12.w2	; !WS and !SCK LDI R30, 0x00	; !WS and !SCK
 	DELAYx4 R14
 	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
-	NOP
+	ADD R30.b0, R30.b0, 0x10 ;MOV  R20.b0, R18.b2 ;NOP
 	QBA secondHalfBit7
 
 chainedBranching:		;only here to make long qba possible from end of file
 	QBA tdmArraySamplingloop
 	
 secondHalfBit7:
-	MOV R30.w0, R12.w0	 ; SCK
+	OR R30.w0, R30.w0, R12.w0	 ; SCK
 	DELAYx4 R14
 	AND  R20.b0, R20.b0, 0xf
 	LSL  R28, R20.b0, 28
