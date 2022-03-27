@@ -39,7 +39,7 @@ BITFILL	.macro Rx, lefts
 	AND R30.w0, R30.w0, R12.w2	; !WS and !SCK
 	DELAYx4 R14
 	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
-	ADD R30.b0, R30.b0, 0x10 ;MOV  R20.b0, R18.b2 ;NOP
+	NOP ;ADD R30.b0, R30.b0, 0x10 ; ADD if you want to emit test pattern
 	NOP ;ADD R18.b2, R18.b2, 1 ;NOP
 	
 	OR R30.w0, R30.w0, R12.w0	 ; SCK
@@ -116,9 +116,9 @@ tdmArraySamplingInit:
 	LDI R30, 0x00	        ; Set both SCK as well as both WS to 0
 	LDI R18.b1, 1
 
-	LDI R11.w0, 0x0f00 	; WS1, WS2, SCK1 and SCK2
+	LDI R11.w0, 0x0f80 	; WS1, WS2, SCK1 and SCK2, firstBitInd
 	LDI R12.w0, 0x0300	; SCK1 and SCK2
-	NOT R12.w2, R11.w0	; NOT (SCK1, SCK2, WS1, WS2). For turning off all
+	NOT R12.w2, R11.w0	; NOT (SCK1, SCK2, WS1, WS2, firstBitInd). For turning off all
 	MOV R13.w0, R11.w0 	; WS1, WS2, SCK1 and SCK2 for first mic
 
 	LDI R30.w0, 0x0100	; flip this once to have something to trig on
@@ -149,7 +149,7 @@ tdmArraySamplingInitLoop:
 	;; Done! Now valid samples after first WS
 	
 	;; First SCK of sample (bit 23, i.e. MSB)
-	MOV R30.w0,  R11.w0	; SCK and WS (WS for first mics on loops)
+	MOV R30.w0,  R11.w0	; SCK and WS and firstBitInd (WS for first mics on loops)
 	DELAYx4 R14
 	NOP
 	NOP
@@ -184,7 +184,7 @@ tdmArraySamplingloop:
 	AND R30.w0, R30.w0, R12.w2	; !WS and !SCK LDI R30, 0x00	; !WS and !SCK
 	DELAYx4 R14
 	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
-	ADD R30.b0, R30.b0, 0x10 ;MOV  R20.b0, R18.b2 ;NOP
+	NOP ;ADD R30.b0, R30.b0, 0x10 ; ADD if you want to emit test pattern
 	QBA secondHalfBit7
 
 chainedBranching:		;only here to make long qba possible from end of file
@@ -266,8 +266,8 @@ tdmArraySamplingBlanks:
 	DELAYx4 R14
 	QBEQ  upcommingWS, R20.b2, 0
 
-	MOV   R13.w0, R12.w0	;WS is set not set for next sample
-	NOP
+	MOV   R13.w0, R12.w0	;WS is not set for next sample
+	OR    R13.w0, R13.w0, 0x0080 ; But firstBitInd is still set.
 
 
 	MOV R30.w0, R12.w0	; SCK (z3)
@@ -283,7 +283,7 @@ tdmArraySamplingBlanks:
 	QBA   tdmArraySamplingBlanks2	;keep timing
 
 upcommingWS:
-	MOV   R13.w0, R11.w0	;WS is set for next sample
+	MOV   R13.w0, R11.w0	;WS and firstBitInd are set for next sample
 	NOP
 
 	MOV R30.w0, R12.w0	 ; SCK (z3) 
