@@ -37,8 +37,8 @@ $E?:	NOP
 
 BITFILL	.macro Rx, lefts
 	AND R30.w0, R30.w0, R12.w2	; !WS and !SCK
-	DELAYx4 R14
 	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
+	DELAYx4 R14
 	NOP ;ADD R30.b0, R30.b0, 0x10 ; ADD if you want to emit test pattern
 	NOP ;ADD R18.b2, R18.b2, 1 ;NOP
 	
@@ -116,8 +116,10 @@ tdmArraySamplingInit:
 	LDI R30, 0x00	        ; Set both SCK as well as both WS to 0
 	LDI R18.b1, 1
 
-	LDI R11.w0, 0x0f80 	; WS1, WS2, SCK1 and SCK2, firstBitInd
+	LDI R10.w0, 0x0c80	; WS and firstBitInd
+	LDI R10.w2, 0x0080	; firstBitInd
 	LDI R12.w0, 0x0300	; SCK1 and SCK2
+	OR  R11.w0, R10.w0, R12.w0 	; WS1, WS2, SCK1 and SCK2, firstBitInd
 	NOT R12.w2, R11.w0	; NOT (SCK1, SCK2, WS1, WS2, firstBitInd). For turning off all
 	MOV R13.w0, R11.w0 	; WS1, WS2, SCK1 and SCK2 for first mic
 
@@ -134,6 +136,7 @@ tdmArrayInitialStandby:
 	LSL R21, R21, 18	;var for start sequence with 262144 SCK at choosen MHz
 
 tdmArraySamplingInitLoop:
+	NOP
 	MOV R30.w0, R12.w0	;Set both SCK to 1
 	DELAYx4 R14
 	NOP
@@ -143,11 +146,12 @@ tdmArraySamplingInitLoop:
 	LDI R30, 0x00	;Set both SCK to 0
 	DELAYx4 R14
 	SUB R21, R21, 1		;Decrease from initial 262144
-	NOP
 	QBNE tdmArraySamplingInitLoop, R21, 0
 
 	;; Done! Now valid samples after first WS
-	
+
+	MOV R30.w0, R10.w0   ; WS and firstBitInd before SCK
+
 	;; First SCK of sample (bit 23, i.e. MSB)
 	MOV R30.w0,  R11.w0	; SCK and WS and firstBitInd (WS for first mics on loops)
 	DELAYx4 R14
@@ -182,8 +186,8 @@ tdmArraySamplingloop:
 
 	;; sampling bits 7 and providing chainedBranching
 	AND R30.w0, R30.w0, R12.w2	; !WS and !SCK LDI R30, 0x00	; !WS and !SCK
-	DELAYx4 R14
 	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
+	DELAYx4 R14
 	NOP ;ADD R30.b0, R30.b0, 0x10 ; ADD if you want to emit test pattern
 	QBA secondHalfBit7
 
@@ -278,13 +282,13 @@ tdmArraySamplingBlanks:
 
 	LDI R30, 0x00	; !SCK (z3)
 	DELAYx4 R14
-	NOP
+	MOV   R13.w2, R10.w2	; firstBitInd
 	NOP
 	QBA   tdmArraySamplingBlanks2	;keep timing
 
 upcommingWS:
 	MOV   R13.w0, R11.w0	;WS and firstBitInd are set for next sample
-	NOP
+	MOV   R13.w2, R10.w0	; WS and firstBitInd
 
 	MOV R30.w0, R12.w0	 ; SCK (z3) 
 	DELAYx4 R14
@@ -313,8 +317,8 @@ tdmArraySamplingBlanks2:
 	LDI R30, 0x00	;!SCK (Z4)
 	DELAYx4 R14
 	SUB   R20.b3, R20.b3, 1
-	QBNE  tdmArraySamplingBlanks3, R20.b3, 0 ;keep timing, once more blanks
-	NOP
+	QBNE  tdmArraySamplingBlanks3, R20.b3, 0 ;keep timing, more blanks
+	MOV R30.w0, R13.w2
 
 	;; First SCK of sample (bit 23, i.e. MSB)
 	MOV R30.w0,  R13.w0	; SCK and WS (WS for first mics on loops)
