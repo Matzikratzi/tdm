@@ -37,9 +37,9 @@ $E?:	NOP
 
 BITFILL	.macro Rx, lefts
 	AND R30.w0, R30.w0, R12.w2	; !WS and !SCK
-	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
 	DELAYx4 R14
 	NOP ;ADD R30.b0, R30.b0, 0x10 ; ADD if you want to emit test pattern
+	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
 	NOP ;ADD R18.b2, R18.b2, 1 ;NOP
 	
 	OR R30.w0, R30.w0, R12.w0	 ; SCK
@@ -186,9 +186,9 @@ tdmArraySamplingloop:
 
 	;; sampling bits 7 and providing chainedBranching
 	AND R30.w0, R30.w0, R12.w2	; !WS and !SCK LDI R30, 0x00	; !WS and !SCK
-	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
 	DELAYx4 R14
 	NOP ;ADD R30.b0, R30.b0, 0x10 ; ADD if you want to emit test pattern
+	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
 	QBA secondHalfBit7
 
 chainedBranching:		;only here to make long qba possible from end of file
