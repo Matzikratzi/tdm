@@ -171,7 +171,6 @@ tdmArraySamplingloop:
 	BITFILL R25, 8
 	BITFILL R25, 4
 	BITFILL R25, 0
-
 	
 	;; sampling bits 15-8
 	BITFILL R26, 28
@@ -184,25 +183,8 @@ tdmArraySamplingloop:
 	BITFILL R26, 4
 	BITFILL R26, 0
 
-	;; sampling bits 7 and providing chainedBranching
-	AND R30.w0, R30.w0, R12.w2	; !WS and !SCK LDI R30, 0x00	; !WS and !SCK
-	DELAYx4 R14
-	NOP ;ADD R30.b0, R30.b0, 0x10 ; ADD if you want to emit test pattern
-	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
-	QBA secondHalfBit7
-
-chainedBranching:		;only here to make long qba possible from end of file
-	QBA tdmArraySamplingloop
-	
-secondHalfBit7:
-	OR R30.w0, R30.w0, R12.w0	 ; SCK
-	DELAYx4 R14
-	AND  R20.b0, R20.b0, 0xf
-	LSL  R28, R20.b0, 28
-	OR   R27, R27, R28
-
-	;; sampling bits 6-0
-
+	;; sampling bits 7-0
+	BITFILL R27, 28
 	BITFILL R27, 24
 	BITFILL R27, 20
 	BITFILL R27, 16
@@ -212,7 +194,6 @@ secondHalfBit7:
 	BITFILL R27, 4
 	BITFILL R27, 0		;with SCK z0
 
-	
 	LDI R30, 0x00	; !SCK (z0)
 	DELAYx4 R14
 	MOV   R28.b2, R20.b2	; mic index
@@ -324,8 +305,8 @@ tdmArraySamplingBlanks2:
 	MOV R30.w0,  R13.w0	; SCK and WS (WS for first mics on loops)
 	DELAYx4 R14
 	NOP
-	;NOP                    This is a to long jump, so must be chained!
-	QBA   chainedBranching ;tdmArraySamplingloop 
+	NOP
+	JMP   tdmArraySamplingloop
 
 tdmArraySamplingBlanks3:
 	QBA   tdmArraySamplingBlanks2	;keep timing, once more blanks
