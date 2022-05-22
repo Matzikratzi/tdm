@@ -40,7 +40,7 @@ BITFILL	.macro Rx, lefts
 	DELAYx4 R14
 	NOP ;ADD R30.b0, R30.b0, 0x10 ; ADD if you want to emit test pattern
 	MOV  R20.b0, R31.b0	; Sample all four mics simultaneously
-	NOP ;ADD R18.b2, R18.b2, 1 ;NOP
+	ADD R30.b0, R30.b0, 0x10 ;NOP ;ADD R18.b2, R18.b2, 1 ;NOP ;;; test-pattern that can be connected to the inputs by cable
 	
 	OR R30.w0, R30.w0, R12.w0	 ; SCK
 	DELAYx4 R14

@@ -26,12 +26,12 @@ echo 1 > /sys/class/gpio/gpio66/value
 # echo 0 > /sys/devices/virtual/misc/beaglelogic/sampleunit
 # cat /sys/devices/virtual/misc/beaglelogic/sampleunit
 
-# echo 100000000 > /sys/devices/virtual/misc/beaglelogic/samplerate
+# echo 25000000 > /sys/devices/virtual/misc/beaglelogic/samplerate
 # cat /sys/devices/virtual/misc/beaglelogic/samplerate
 
 echo 33554432 > /sys/devices/virtual/misc/beaglelogic/memalloc
 
 rm -rf mydump
-dd if=/dev/beaglelogic of=mydump bs=1M count=1
+dd if=/dev/beaglelogic bs=1M count=300 > mydump.bin
 
-hexdump -C mydump|head
+hexdump -C mydump.bin|head

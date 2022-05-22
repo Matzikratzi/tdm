@@ -11,8 +11,8 @@ do
     
 done
 
-# preparing outputs for up to 4 SCK and 2 WS
-for i in 20 21 27 28 29 30
+# preparing outputs for up to 2 SCK and 2 WS
+for i in 27 28 29 30
 do
     config-pin P8_$i pruout
 done
@@ -24,3 +24,7 @@ done
 # cat /sys/devices/virtual/misc/beaglelogic/samplerate
 
 echo 33554432 > /sys/devices/virtual/misc/beaglelogic/memalloc
+
+# 16 kHz (when we have the downscaling functionality in BITFILL)
+echo 50000000 > /sys/devices/virtual/misc/beaglelogic/samplerate
+
