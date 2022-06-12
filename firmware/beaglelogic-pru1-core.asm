@@ -136,7 +136,6 @@ tdmArrayInitialStandby:
 	LSL R21, R21, 18	;var for start sequence with 262144 SCK at choosen MHz
 
 tdmArraySamplingInitLoop:
-	NOP
 	MOV R30.w0, R12.w0	;Set both SCK to 1
 	DELAYx4 R14
 	NOP
@@ -146,11 +145,23 @@ tdmArraySamplingInitLoop:
 	LDI R30, 0x00	;Set both SCK to 0
 	DELAYx4 R14
 	SUB R21, R21, 1		;Decrease from initial 262144
+	NOP
 	QBNE tdmArraySamplingInitLoop, R21, 0
 
 	;; Done! Now valid samples after first WS
+	MOV R30.w0, R12.w0	;Set both SCK to 1
+	DELAYx4 R14
+	NOP
+	NOP
+	NOP
 
-	MOV R30.w0, R10.w0   ; WS and firstBitInd before SCK
+	MOV R30, R10.w0		;Set !SCK, WS and firstBitInd
+	DELAYx4 R14
+	NOP
+	NOP
+	NOP
+
+	
 
 	;; First SCK of sample (bit 23, i.e. MSB)
 	MOV R30.w0,  R11.w0	; SCK and WS and firstBitInd (WS for first mics on loops)
@@ -250,9 +261,8 @@ tdmArraySamplingBlanks:
 	LDI R30, 0x00	;!SCK (z2)
 	DELAYx4 R14
 	QBEQ  upcommingWS, R20.b2, 0
-
-	MOV   R13.w0, R12.w0	;WS is not set for next sample
-	OR    R13.w0, R13.w0, 0x0080 ; But firstBitInd is still set.
+	OR    R13.w0, R12.w0, R10.w2 ; SCK and firstBitInd but no WS
+	MOV   R13.w2, R10.w2	; firstBitInd
 
 
 	MOV R30.w0, R12.w0	; SCK (z3)
@@ -263,12 +273,12 @@ tdmArraySamplingBlanks:
 
 	LDI R30, 0x00	; !SCK (z3)
 	DELAYx4 R14
-	MOV   R13.w2, R10.w2	; firstBitInd
+	NOP
 	NOP
 	QBA   tdmArraySamplingBlanks2	;keep timing
 
 upcommingWS:
-	MOV   R13.w0, R11.w0	;WS and firstBitInd are set for next sample
+	MOV   R13.w0, R11.w0	;SCK, WS and firstBitInd are set for next sample
 	MOV   R13.w2, R10.w0	; WS and firstBitInd
 
 	MOV R30.w0, R12.w0	 ; SCK (z3) 
@@ -297,9 +307,45 @@ tdmArraySamplingBlanks2:
 
 	LDI R30, 0x00	;!SCK (Z4)
 	DELAYx4 R14
-	SUB   R20.b3, R20.b3, 1
-	QBNE  tdmArraySamplingBlanks3, R20.b3, 0 ;keep timing, more blanks
-	MOV R30.w0, R13.w2
+	NOP
+	NOP
+	NOP
+
+	MOV R30.w0, R12.w0	;SCK (z5)
+	DELAYx4 R14
+	NOP
+	NOP
+	NOP
+
+	LDI R30, 0x00	;!SCK (Z5)
+	DELAYx4 R14
+	NOP
+	NOP
+	NOP
+
+	MOV R30.w0, R12.w0	;SCK (z6)
+	DELAYx4 R14
+	NOP
+	NOP
+	NOP
+
+	LDI R30, 0x00	;!SCK (Z6)
+	DELAYx4 R14
+	NOP
+	NOP
+	NOP
+
+	MOV R30.w0, R12.w0	;SCK (z7)
+	DELAYx4 R14
+	NOP
+	NOP
+	NOP
+
+	MOV R30.w0, R13.w2	;!SCK (Z7), firstBitInd, possibly WS
+	DELAYx4 R14
+	NOP
+	NOP
+	NOP
 
 	;; First SCK of sample (bit 23, i.e. MSB)
 	MOV R30.w0,  R13.w0	; SCK and WS (WS for first mics on loops)
@@ -307,9 +353,6 @@ tdmArraySamplingBlanks2:
 	NOP
 	NOP
 	JMP   tdmArraySamplingloop
-
-tdmArraySamplingBlanks3:
-	QBA   tdmArraySamplingBlanks2	;keep timing, once more blanks
 	
 ; End-of-firmware
 	HALT
